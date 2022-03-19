@@ -12,7 +12,8 @@ import java.security.NoSuchAlgorithmException;
 public class Main {
 
     public static void main(String[] args) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
-        AES.simpleAES();
+        //AES.simpleAES();
         TimeTest.getResults();
+        //BlockChaining.testECB();
     }
 }

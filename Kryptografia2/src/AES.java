@@ -1,4 +1,5 @@
 import javax.crypto.*;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -10,10 +11,12 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.KeySpec;
 import java.util.Base64;
-
+import java.util.Random;
 
 
 public class AES {
+
+
 
     public static void encryptFile(String algorithm, SecretKey key, IvParameterSpec iv,
                                    File inputFile, File outputFile) throws IOException, NoSuchPaddingException,
@@ -21,7 +24,10 @@ public class AES {
             BadPaddingException, IllegalBlockSizeException {
 
         Cipher cipher = Cipher.getInstance(algorithm);
-        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+
+        if(algorithm.contains("/ECB/")) cipher.init(Cipher.ENCRYPT_MODE, key);
+        else cipher.init(Cipher.ENCRYPT_MODE, key, iv);
+
         FileInputStream inputStream = new FileInputStream(inputFile);
         FileOutputStream outputStream = new FileOutputStream(outputFile);
         byte[] buffer = new byte[64];
@@ -46,7 +52,10 @@ public class AES {
             BadPaddingException, IllegalBlockSizeException {
 
         Cipher cipher = Cipher.getInstance(algorithm);
-        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+
+        if(algorithm.contains("/ECB/")) cipher.init(Cipher.DECRYPT_MODE, key);
+        else cipher.init(Cipher.DECRYPT_MODE, key, iv);
+
         FileInputStream inputStream = new FileInputStream(inputFile);
         FileOutputStream outputStream = new FileOutputStream(outputFile);
         byte[] buffer = new byte[64];
@@ -177,6 +186,84 @@ public class AES {
         }
         return null;
     }
+
+
+
+    public static void encryptCBC(SecretKey key, byte[] iv, File inputFile, File outputFile)
+            throws IOException, NoSuchPaddingException,
+            NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException,
+            BadPaddingException, IllegalBlockSizeException {
+
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+
+
+
+        FileInputStream inputStream = new FileInputStream(inputFile);
+        FileOutputStream outputStream = new FileOutputStream(outputFile);
+
+        byte[] buffer = new byte[64];
+        int bytesRead;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            byte[] xor_res = new byte[64];
+            int i = 0;
+            for (byte b : iv)
+                xor_res[i] = (byte) (b ^ buffer[i++]);
+
+            byte[] output = cipher.update(xor_res, 0, bytesRead);
+            if (output != null) {
+                outputStream.write(output);
+                iv=output;
+            }
+        }
+        byte[] outputBytes = cipher.doFinal();
+        if (outputBytes != null) {
+            outputStream.write(outputBytes);
+        }
+        inputStream.close();
+        outputStream.close();
+    }
+
+    public static void decryptCBC(SecretKey key, byte[] iv, File inputFile, File outputFile)
+            throws IOException, NoSuchPaddingException,
+            NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException,
+            BadPaddingException, IllegalBlockSizeException {
+
+        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+
+
+
+        FileInputStream inputStream = new FileInputStream(inputFile);
+        FileOutputStream outputStream = new FileOutputStream(outputFile);
+
+        byte[] buffer = new byte[64];
+        int bytesRead;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+
+
+            byte[] output = cipher.update(buffer, 0, bytesRead);
+            if (output != null) {
+
+                byte[] xor_res = new byte[64];
+                int i = 0;
+                for (byte b : iv)
+                    xor_res[i] = (byte) (b ^ output[i++]);
+                outputStream.write(xor_res);
+                iv=buffer;
+            }
+        }
+        byte[] outputBytes = cipher.doFinal();
+        if (outputBytes != null) {
+            outputStream.write(outputBytes);
+        }
+        inputStream.close();
+        outputStream.close();
+    }
+
+
+
+
 }
 
 //    public static SecretKey generateKey(int n) throws NoSuchAlgorithmException {
@@ -184,5 +271,8 @@ public class AES {
 //        keyGenerator.init(n);
 //        SecretKey key = keyGenerator.generateKey();
 //        return key;
+
+
+
 //    }
 

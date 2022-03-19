@@ -5,6 +5,8 @@ import java.io.*;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class TimeTest {
 
@@ -12,32 +14,42 @@ public class TimeTest {
     public static void getResults() throws InvalidKeyException, NoSuchPaddingException,
             NoSuchAlgorithmException, InvalidAlgorithmParameterException, IllegalBlockSizeException, IOException, BadPaddingException {
 
+        //klucz szyfrujący
         String encryptionKeyString =  "thisisa128bitkey";
         byte[] keyBytes = encryptionKeyString.getBytes();
         SecretKey secretKey = new SecretKeySpec(keyBytes, "AES");
 
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 
-        File inputFile = new File("out/production/Kryptografia2/tekst.txt");
-        File outputFile = new File("out/production/Kryptografia2/tekstFunc.txt");
-        File endFile = new File("out/production/Kryptografia2/tekstEnd.txt");
+        File textFile = new File("src/tekst.txt");
+        File encryptedFile = new File("src/tekstFunc.txt");
+        File decryptedFile = new File("src/tekstEnd.txt");
 
-        long avg=0;
-        for (int i=0; i<10; i++){
-            String algorithm = "AES/CBC/PKCS5Padding";
-            IvParameterSpec iv = AES.generateIv();
-            long start1 = System.nanoTime();
 
-            AES.encryptFile(algorithm,secretKey,iv,inputFile,outputFile);
-            AES.decryptFile(algorithm,secretKey,iv,outputFile,endFile);
-            long end1 = System.nanoTime();
-            avg+=end1-start1;
-            System.out.println(end1-start1);
+
+        ArrayList<String> modes = new ArrayList<>(Arrays.asList("AES/ECB/PKCS5Padding", "AES/CBC/PKCS5Padding", "AES/CFB/PKCS5Padding", "AES/OFB/PKCS5Padding", "AES/CTR/PKCS5Padding"));
+
+        for(String mode: modes){
+            long avg1=0;
+            long avg2=0;
+            for (int i=0; i<10; i++){
+                String algorithm = mode;
+                IvParameterSpec iv = AES.generateIv();
+
+                long start1 = System.nanoTime();
+                AES.encryptFile(algorithm,secretKey,iv,textFile,encryptedFile);
+                long end1 = System.nanoTime();
+
+                long start2 = System.nanoTime();
+                AES.decryptFile(algorithm,secretKey,iv,encryptedFile,decryptedFile);
+                long end2 = System.nanoTime();
+
+                avg1+=end1-start1;
+                avg2+=end2-start2;
+
+            }
+            System.out.println("Average "+mode+" encryption time in nano seconds: "+ avg1/10);
+            System.out.println("Average "+mode+" decryption time in nano seconds: "+ avg2/10);
         }
-
-
-        System.out.println("Elapsed Time in nano seconds: "+ avg/10);
 
     }
 
