@@ -187,28 +187,33 @@ public class AES {
         return null;
     }
 
-
+    private static String getFileSizeBytes(File file) {
+        return file.length() + " bytes";
+    }
 
     public static void encryptCBC(SecretKey key, byte[] iv, File inputFile, File outputFile)
             throws IOException, NoSuchPaddingException,
             NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException,
             BadPaddingException, IllegalBlockSizeException {
 
-        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+
+        System.out.println("file size" + getFileSizeBytes(inputFile));
+
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE, key);
-
-
 
         FileInputStream inputStream = new FileInputStream(inputFile);
         FileOutputStream outputStream = new FileOutputStream(outputFile);
 
-        byte[] buffer = new byte[64];
+
+
+
+
+        byte[] buffer = new byte[16];
         int bytesRead;
         while ((bytesRead = inputStream.read(buffer)) != -1) {
-            byte[] xor_res = new byte[64];
-            int i = 0;
-            for (byte b : iv)
-                xor_res[i] = (byte) (b ^ buffer[i++]);
+            System.out.println("XOR encrypt");
+            byte[] xor_res = xorFunc(iv,buffer);
 
             byte[] output = cipher.update(xor_res, 0, bytesRead);
             if (output != null) {
@@ -229,28 +234,26 @@ public class AES {
             NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException,
             BadPaddingException, IllegalBlockSizeException {
 
-        Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, key);
-
-
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, key);
 
         FileInputStream inputStream = new FileInputStream(inputFile);
         FileOutputStream outputStream = new FileOutputStream(outputFile);
 
-        byte[] buffer = new byte[64];
+        byte[] buffer = new byte[16];
         int bytesRead;
         while ((bytesRead = inputStream.read(buffer)) != -1) {
-
+            System.out.println("bytes read "+bytesRead);
 
             byte[] output = cipher.update(buffer, 0, bytesRead);
             if (output != null) {
+                System.out.println("output "+output.length);
 
-                byte[] xor_res = new byte[64];
-                int i = 0;
-                for (byte b : iv)
-                    xor_res[i] = (byte) (b ^ output[i++]);
-                outputStream.write(xor_res);
-                iv=buffer;
+                //System.out.println("XOR decrypt");
+                //byte[] xor_res = xorFunc(iv,output);
+                if(output.length>0) { System.out.println("XOR decrypt"); byte[] xor_res = xorFunc(iv,output); outputStream.write(xor_res);}
+                else{outputStream.write(output);
+               }
             }
         }
         byte[] outputBytes = cipher.doFinal();
@@ -259,6 +262,30 @@ public class AES {
         }
         inputStream.close();
         outputStream.close();
+    }
+
+
+    private static byte[] xorFunc(byte[] a, byte[] b){
+        System.out.println(a.length+" "+ b.length);
+        int i=0;
+        byte[] res = new byte[16];
+        for (byte by : b){
+            res[i] = (byte) (by ^ a[i++]);}
+
+        for(i=0; i< res.length ; i++) {
+            System.out.print(a[i] +" ");
+        }
+        System.out.println();
+        for(i=0; i< res.length ; i++) {
+            System.out.print(b[i] +" ");
+        }
+        System.out.println();
+        //System.out.println(Base64.getEncoder().encodeToString(res));
+        for(i=0; i< res.length ; i++) {
+            System.out.print(res[i] +" ");
+        }
+
+        return  res;
     }
 
 

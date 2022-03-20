@@ -2,6 +2,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
 import java.io.IOException;
@@ -19,7 +20,7 @@ public class BlockChaining
         byte[] keyBytes = encryptionKeyString.getBytes();
         SecretKey secretKey = new SecretKeySpec(keyBytes, "AES");
 
-        byte[] iv = new byte[64];
+        byte[] iv = new byte[16];
         new SecureRandom().nextBytes(iv);
 
 
@@ -27,7 +28,9 @@ public class BlockChaining
         File encryptedFile = new File("src/mineCBCen.txt");
         File decryptedFile = new File("src/mineCBCde.txt");
 
-        //AES.encryptCBC(secretKey, iv, textFile,encryptedFile);
+        IvParameterSpec ivv = AES.generateIv();
+        AES.encryptCBC(secretKey, iv, textFile,encryptedFile);
+//        AES.decryptFile("AES/ECB/PKCS5Padding", secretKey, ivv,encryptedFile,decryptedFile );
         AES.decryptCBC(secretKey, iv, encryptedFile, decryptedFile);
     }
 

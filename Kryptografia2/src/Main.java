@@ -13,7 +13,7 @@ public class Main {
 
     public static void main(String[] args) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
         //AES.simpleAES();
-        TimeTest.getResults();
-        //BlockChaining.testECB();
+        //TimeTest.getResults();
+        BlockChaining.testECB();
     }
 }
