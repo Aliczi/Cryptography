@@ -10,13 +10,14 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.KeySpec;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class AES {
-
-
 
     public static void encryptFile(String algorithm, SecretKey key, IvParameterSpec iv,
                                    File inputFile, File outputFile) throws IOException, NoSuchPaddingException,
@@ -146,8 +147,7 @@ public class AES {
     private static final String SALT = "ssshhhhhhhhhhh!!!!";
 
     // This method use to decrypt to string
-    public static String decrypt(String strToDecrypt)
-    {
+    public static String decrypt(String strToDecrypt) {
         try {
 
             // Default byte array
@@ -187,17 +187,13 @@ public class AES {
         return null;
     }
 
-    private static String getFileSizeBytes(File file) {
-        return file.length() + " bytes";
+    private static int getHowManyBlocks(File file) {
+        return (int) (file.length()/16);
     }
 
-    public static void encryptCBC(SecretKey key, byte[] iv, File inputFile, File outputFile)
-            throws IOException, NoSuchPaddingException,
-            NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException,
-            BadPaddingException, IllegalBlockSizeException {
+    public static void encryptCBC(SecretKey key, byte[] iv, File inputFile, File outputFile) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException,  InvalidKeyException {
+//        System.out.print("Iv        "); for(int i=0; i<iv.length;i++) System.out.print(iv[i]+" "); System.out.println();
 
-
-        System.out.println("file size" + getFileSizeBytes(inputFile));
 
         Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE, key);
@@ -207,32 +203,35 @@ public class AES {
 
 
 
-
-
         byte[] buffer = new byte[16];
         int bytesRead;
-        while ((bytesRead = inputStream.read(buffer)) != -1) {
-            System.out.println("XOR encrypt");
-            byte[] xor_res = xorFunc(iv,buffer);
 
-            byte[] output = cipher.update(xor_res, 0, bytesRead);
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            byte[] xor_res;
+            if(bytesRead==16) xor_res = xorFunc(iv,buffer);
+            else{
+                byte[] padded_buffer = pad(buffer, bytesRead);
+                xor_res = xorFunc(iv,padded_buffer);
+            }
+
+            byte[] output = cipher.update(xor_res, 0, xor_res.length);
             if (output != null) {
                 outputStream.write(output);
                 iv=output;
             }
+
         }
-        byte[] outputBytes = cipher.doFinal();
-        if (outputBytes != null) {
-            outputStream.write(outputBytes);
-        }
+
         inputStream.close();
         outputStream.close();
     }
 
-    public static void decryptCBC(SecretKey key, byte[] iv, File inputFile, File outputFile)
-            throws IOException, NoSuchPaddingException,
-            NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException,
-            BadPaddingException, IllegalBlockSizeException {
+    public static void decryptCBC(SecretKey key, byte[] iv, File inputFile, File outputFile) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException {
+//        System.out.print("Iv        "); for(int i=0; i<iv.length;i++) System.out.print(iv[i]+" "); System.out.println();
+
+
+        int blocks = getHowManyBlocks(inputFile);
+        int counter = 1;
 
         Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
         cipher.init(Cipher.DECRYPT_MODE, key);
@@ -243,63 +242,173 @@ public class AES {
         byte[] buffer = new byte[16];
         int bytesRead;
         while ((bytesRead = inputStream.read(buffer)) != -1) {
-            System.out.println("bytes read "+bytesRead);
 
             byte[] output = cipher.update(buffer, 0, bytesRead);
             if (output != null) {
-                System.out.println("output "+output.length);
+                byte[] xor_res = xorFunc(iv,output);
+                if (counter==blocks) xor_res=trim(xor_res); else counter++;
+                outputStream.write(xor_res);
+                for(int i=0; i< iv.length ; i++) iv[i]=buffer[i];
 
-                //System.out.println("XOR decrypt");
-                //byte[] xor_res = xorFunc(iv,output);
-                if(output.length>0) { System.out.println("XOR decrypt"); byte[] xor_res = xorFunc(iv,output); outputStream.write(xor_res);}
-                else{outputStream.write(output);
                }
             }
-        }
-        byte[] outputBytes = cipher.doFinal();
-        if (outputBytes != null) {
-            outputStream.write(outputBytes);
-        }
+
+
         inputStream.close();
         outputStream.close();
     }
 
 
+    public static void encryptPBC(SecretKey key, byte[] iv, File inputFile, File outputFile) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException,  InvalidKeyException {
+//        System.out.print("Iv        "); for(int i=0; i<iv.length;i++) System.out.print(iv[i]+" "); System.out.println();
+
+
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+
+        FileInputStream inputStream = new FileInputStream(inputFile);
+        FileOutputStream outputStream = new FileOutputStream(outputFile);
+
+
+
+        byte[] buffer = new byte[16];
+        int bytesRead;
+
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            byte[] xor_res;
+            if(bytesRead==16) xor_res = xorFunc(iv,buffer);
+            else{
+                byte[] padded_buffer = pad(buffer, bytesRead);
+                xor_res = xorFunc(iv,padded_buffer);
+            }
+
+            byte[] output = cipher.update(xor_res, 0, xor_res.length);
+            if (output != null) {
+                outputStream.write(output);
+                iv= Arrays.copyOf(buffer, buffer.length);;
+//                for(int i=0; i<iv.length; i++ ) iv[i]=buffer[i];
+            }
+
+        }
+
+        inputStream.close();
+        outputStream.close();
+    }
+
+    public static void decryptPBC(SecretKey key, byte[] iv, File inputFile, File outputFile) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException {
+//        System.out.print("Iv        "); for(int i=0; i<iv.length;i++) System.out.print(iv[i]+" "); System.out.println();
+
+
+        int blocks = getHowManyBlocks(inputFile);
+        int counter = 1;
+
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, key);
+
+        FileInputStream inputStream = new FileInputStream(inputFile);
+        FileOutputStream outputStream = new FileOutputStream(outputFile);
+
+        byte[] buffer = new byte[16];
+        int bytesRead;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+
+            byte[] output = cipher.update(buffer, 0, bytesRead);
+            if (output != null) {
+                byte[] xor_res = xorFunc(iv,output);
+                if (counter==blocks) xor_res=trim(xor_res); else counter++;
+                outputStream.write(xor_res);
+                iv = Arrays.copyOf(xor_res, xor_res.length);
+
+            }
+        }
+
+
+        inputStream.close();
+        outputStream.close();
+    }
+
+    public static void encryptECB(SecretKey key, File inputFile, File outputFile) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException,  InvalidKeyException {
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+
+        FileInputStream inputStream = new FileInputStream(inputFile);
+        FileOutputStream outputStream = new FileOutputStream(outputFile);
+
+        byte[] buffer = new byte[16];
+        int bytesRead;
+
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            if(bytesRead!=16) buffer = pad(buffer, bytesRead);
+            byte[] output = cipher.update(buffer, 0, 16);
+            if (output != null) outputStream.write(output);
+        }
+
+        inputStream.close();
+        outputStream.close();
+    }
+
+    public static void decryptECB(SecretKey key, File inputFile, File outputFile) throws IOException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException {
+        int blocks = getHowManyBlocks(inputFile);
+        int counter = 1;
+
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, key);
+
+        FileInputStream inputStream = new FileInputStream(inputFile);
+        FileOutputStream outputStream = new FileOutputStream(outputFile);
+
+        byte[] buffer = new byte[16];
+        int bytesRead;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            byte[] output = cipher.update(buffer, 0, bytesRead);
+            if (output != null) {
+                if (counter==blocks) output=trim(output); else counter++;
+                outputStream.write(output);
+            }
+        }
+        inputStream.close();
+        outputStream.close();
+    }
+
     private static byte[] xorFunc(byte[] a, byte[] b){
-        System.out.println(a.length+" "+ b.length);
         int i=0;
         byte[] res = new byte[16];
         for (byte by : b){
             res[i] = (byte) (by ^ a[i++]);}
-
-        for(i=0; i< res.length ; i++) {
-            System.out.print(a[i] +" ");
-        }
-        System.out.println();
-        for(i=0; i< res.length ; i++) {
-            System.out.print(b[i] +" ");
-        }
-        System.out.println();
-        //System.out.println(Base64.getEncoder().encodeToString(res));
-        for(i=0; i< res.length ; i++) {
-            System.out.print(res[i] +" ");
-        }
-
         return  res;
     }
 
+    private static byte[] pad(byte[] a, int read){
+        byte[] res = new byte[16];
+        int i;
+        for(i=0;i<read;i++) res[i]= a[i];
+        for(i=read;i<16;i++) res[i]= (byte) (16-read);
+
+        return res;
+    }
+
+    private static byte[] trim(byte[] a) {
+        if( a[15]==(byte)15) { byte[] res = new byte[1]; for(int i=0; i<1; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)14) { byte[] res = new byte[2]; for(int i=0; i<2; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)13) { byte[] res = new byte[3]; for(int i=0; i<3; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)12) { byte[] res = new byte[4]; for(int i=0; i<4; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)11) { byte[] res = new byte[5]; for(int i=0; i<5; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)10) { byte[] res = new byte[6]; for(int i=0; i<6; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)9) { byte[] res = new byte[7]; for(int i=0; i<7; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)8) { byte[] res = new byte[8]; for(int i=0; i<8; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)7) { byte[] res = new byte[9]; for(int i=0; i<9; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)6) { byte[] res = new byte[10]; for(int i=0; i<10; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)5) { byte[] res = new byte[11]; for(int i=0; i<11; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)4) { byte[] res = new byte[12]; for(int i=0; i<12; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)3) { byte[] res = new byte[13]; for(int i=0; i<13; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)2) { byte[] res = new byte[14]; for(int i=0; i<14; i++) res[i]=a[i]; return res;}
+        if( a[15]==(byte)1) { byte[] res = new byte[15]; for(int i=0; i<15; i++) res[i]=a[i]; return res;}
+        return a;
+    }
 
 
 
 }
 
-//    public static SecretKey generateKey(int n) throws NoSuchAlgorithmException {
-//        KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
-//        keyGenerator.init(n);
-//        SecretKey key = keyGenerator.generateKey();
-//        return key;
 
-
-
-//    }
 

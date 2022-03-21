@@ -1,0 +1,1 @@
+In cryptography, a cipher is an algorithm for performing encryption or decryption.
