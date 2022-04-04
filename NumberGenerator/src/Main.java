@@ -34,7 +34,9 @@ public class Main {
             //FIPS test
             FIPS test = new FIPS();
             test.monobitTest(outputFile);
-
+            test.runsTest(outputFile);
+            test.longRunTest(outputFile);
+            test.pokerTest(outputFile);
 
         }
 }
