@@ -23,6 +23,7 @@ public class FIPS {
     };
 
     public void monobitTest(File inputFile) throws FileNotFoundException {
+        if(inputFile.length() != 20000) {System.out.println("Error in The Monobit Test. Invalid file size."); return;}
         Scanner scanner = new Scanner(inputFile);
         scanner.useDelimiter("");
 
@@ -36,6 +37,7 @@ public class FIPS {
     }
 
     public void longRunTest(File inputFile) throws FileNotFoundException {
+        if(inputFile.length() != 20000) {System.out.println("Error in The Long Run Test. Invalid file size."); return;}
         Scanner scanner = new Scanner(inputFile);
         scanner.useDelimiter("");
         String current, prev = "";
@@ -67,6 +69,7 @@ public class FIPS {
     }
 
     public void runsTest(File inputFile) throws FileNotFoundException {
+        if(inputFile.length() != 20000) {System.out.println("Error in The Run Test. Invalid file size."); return;}
         Scanner scanner = new Scanner(inputFile);
         scanner.useDelimiter("");
         String current, prev = scanner.next();
@@ -93,6 +96,7 @@ public class FIPS {
     }
 
     public void pokerTest(File inputFile) throws IOException {
+        if(inputFile.length() != 20000) {System.out.println("Error in The Poker Test. Invalid file size."); return;}
 
         FileInputStream inputStream = new FileInputStream(inputFile);
 

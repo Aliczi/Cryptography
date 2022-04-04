@@ -15,16 +15,16 @@ public class Main {
         */
 
             // 1stprime number pcd d:
-            p = 227L;
+            p = 179L;
             // 2nd prime number q
-            q = 2290939653701L;
+            q = 1707892411793L;
             //Blum's number
             n = p*q;
             //a -> NWD(a, n) = 1. Between 2 and n-1
-            a=157L;
+            a=2345L;
 
 
-            long bits_num=20000;
+            long bits_num=20001;
             String file_name="src/seq_"+bits_num+"_"+n+"_"+a+".txt";
 
             File outputFile = new File(file_name);
